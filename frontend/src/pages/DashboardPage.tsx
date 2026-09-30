@@ -75,33 +75,27 @@ export default function DashboardPage() {
       setCandidate(candidateData)
       setIsLoggedIn(true)
       sessionStorage.setItem('htf_candidate', JSON.stringify(candidateData))
-    } catch {
-      // On static GitHub Pages deployment (where local Django is not exposed to public HTTPS),
-      // seamlessly construct their personalized student profile from the credentials entered!
+      // On static GitHub Pages deployment, initialize a clean candidate session
       const userPrefix = loginEmail.split('@')[0] || 'Candidate'
       const formattedName = userPrefix
         .split(/[._-]/)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ')
 
-      const demoCandidate = {
+      const newCandidate = {
         full_name: formattedName,
         selected_plan_display: 'Full-Throttle Sprint',
         dedicated_email: loginEmail,
         dedicated_email_password: loginPassword,
-        applications_sent: 142,
-        cold_pitches_sent: 48,
-        interviews_received: 4,
-        applications: [
-          { company_name: 'Stripe', role_applied: 'Software Engineer', application_type: 'normal', applied_date: '2026-09-28', status_display: 'Interview Scheduled 🎉' },
-          { company_name: 'Linear', role_applied: 'Product Engineer', application_type: 'cold', applied_date: '2026-09-27', status_display: 'Under Review' },
-          { company_name: 'Vercel', role_applied: 'Full Stack Dev', application_type: 'normal', applied_date: '2026-09-25', status_display: 'Under Review' },
-          { company_name: 'Ramp', role_applied: 'Frontend Engineer', application_type: 'cold', applied_date: '2026-09-24', status_display: 'Interview Scheduled 🎉' },
-        ]
+        applications_sent: 0,
+        cold_pitches_sent: 0,
+        interviews_received: 0,
+        applications: [],
+        is_demo: false,
       }
-      setCandidate(demoCandidate)
+      setCandidate(newCandidate)
       setIsLoggedIn(true)
-      sessionStorage.setItem('htf_candidate', JSON.stringify(demoCandidate))
+      sessionStorage.setItem('htf_candidate', JSON.stringify(newCandidate))
     } finally {
       setLoginSubmitting(false)
     }
@@ -229,16 +223,16 @@ export default function DashboardPage() {
     )
   }
 
-  const name = candidate?.full_name || 'Harshit'
+  const isDemo = searchParams.get('demo') === 'true' || candidate?.is_demo === true
+
+  const name = candidate?.full_name || (isDemo ? 'Harshit' : 'Candidate')
   const plan = candidate?.selected_plan_display || 'Full-Throttle Sprint'
-  const dedicatedEmail = candidate?.dedicated_email || 'harshit.career@applytalent.dev'
+  const dedicatedEmail = candidate?.dedicated_email || (isDemo ? 'harshit.career@applytalent.dev' : 'Activation in Progress')
   const dedicatedPassword = candidate?.dedicated_email_password || '********'
-  const appsSent = candidate ? candidate.applications_sent : 142
-  const coldPitches = candidate ? candidate.cold_pitches_sent : 48
-  const interviews = candidate ? candidate.interviews_received : 4
-  const applications = candidate?.applications && candidate.applications.length > 0
-    ? candidate.applications
-    : defaultApplications
+  const appsSent = candidate ? (candidate.applications_sent ?? 0) : (isDemo ? 142 : 0)
+  const coldPitches = candidate ? (candidate.cold_pitches_sent ?? 0) : (isDemo ? 48 : 0)
+  const interviews = candidate ? (candidate.interviews_received ?? 0) : (isDemo ? 4 : 0)
+  const applications = isDemo ? defaultApplications : (candidate?.applications || [])
 
   return (
     <div className="min-h-screen p-6 md:p-12 max-w-7xl mx-auto">
@@ -253,6 +247,16 @@ export default function DashboardPage() {
           Sign Out [⎋]
         </button>
       </div>
+
+      {isDemo && (
+        <div className="mb-8 p-3 border border-accent/40 bg-accent/10 flex justify-between items-center text-xs font-mono">
+          <span className="text-accent font-bold">⚡ DEMO PREVIEW: Showing sample metrics & historical application activity.</span>
+          <button onClick={handleLogout} className="underline hover:text-text cursor-pointer">
+            Log into real student account →
+          </button>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-border pb-8">
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-2">Live Candidate Monitor</div>
@@ -263,7 +267,7 @@ export default function DashboardPage() {
           <div className="inline-block px-3 py-1 border border-accent text-accent font-mono text-xs mb-2 uppercase">
             PLAN: {plan}
           </div>
-          <p className="font-mono text-xs text-text-muted">ID: {candidateId ? candidateId.slice(0, 8).toUpperCase() : 'DEMO-8492-AXF'}</p>
+          <p className="font-mono text-xs text-text-muted">ID: {candidateId ? candidateId.slice(0, 8).toUpperCase() : (isDemo ? 'DEMO-8492-AXF' : 'PORTAL-ACTIVE')}</p>
         </div>
       </header>
 
@@ -306,54 +310,73 @@ export default function DashboardPage() {
 
       <section className="mb-16">
         <h2 className="text-2xl font-heading font-bold mb-8">Recent Activity</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-sm">
-            <thead>
-              <tr className="border-b border-border text-text-muted">
-                <th className="pb-4 font-normal">COMPANY</th>
-                <th className="pb-4 font-normal">ROLE</th>
-                <th className="pb-4 font-normal">TYPE</th>
-                <th className="pb-4 font-normal">DATE</th>
-                <th className="pb-4 font-normal">STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((app: any, idx: number) => {
-                const compName = app.company_name || app.company
-                const roleName = app.role_applied || app.role
-                const appType = app.application_type === 'cold' || app.type === 'Cold' ? 'Cold' : 'Normal'
-                const appDate = app.applied_date || app.date
-                const appStatus = app.status_display || app.status
 
-                const isInterview = typeof appStatus === 'string' && (appStatus.toLowerCase().includes('interview') || appStatus.toLowerCase().includes('offer'))
-                const isRejected = typeof appStatus === 'string' && appStatus.toLowerCase().includes('reject')
+        {applications.length === 0 ? (
+          <div className="p-12 border border-border text-center bg-surface/20">
+            <div className="inline-block px-3 py-1 border border-accent/40 text-accent font-mono text-xs uppercase tracking-widest mb-3">
+              Campaign Under Preparation
+            </div>
+            <h3 className="font-heading font-bold text-xl mb-2">0 Applications Dispatched Yet</h3>
+            <p className="text-text-secondary font-sans text-sm max-w-md mx-auto mb-6">
+              Your campaign has been initialized! Your strategist (Harshit) is actively curating your company target list and tailoring founder outreach hooks. Submissions will appear here live as they are dispatched.
+            </p>
+            <button
+              onClick={() => window.open('https://wa.me/919311631709?text=Hi%20Harshit!%20Just%20checking%20my%20HammerTheFounder%20portal.%20Any%20updates%20on%20my%20applications?', '_blank')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-text text-bg hover:bg-text/90 font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Ask Strategist on WhatsApp <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-mono text-sm">
+              <thead>
+                <tr className="border-b border-border text-text-muted">
+                  <th className="pb-4 font-normal">COMPANY</th>
+                  <th className="pb-4 font-normal">ROLE</th>
+                  <th className="pb-4 font-normal">TYPE</th>
+                  <th className="pb-4 font-normal">DATE</th>
+                  <th className="pb-4 font-normal">STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applications.map((app: any, idx: number) => {
+                  const compName = app.company_name || app.company
+                  const roleName = app.role_applied || app.role
+                  const appType = app.application_type === 'cold' || app.type === 'Cold' ? 'Cold' : 'Normal'
+                  const appDate = app.applied_date || app.date
+                  const appStatus = app.status_display || app.status
 
-                return (
-                  <tr key={app.id || idx} className="border-b border-border/50 hover:bg-surface/30 transition-colors">
-                    <td className="py-4 font-bold">{compName}</td>
-                    <td className="py-4 text-text-secondary">{roleName}</td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 text-xs border ${appType === 'Cold' ? 'border-accent text-accent' : 'border-border text-text-secondary'}`}>
-                        {appType}
-                      </span>
-                    </td>
-                    <td className="py-4 text-text-muted">{appDate}</td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-2">
-                        {isInterview && <CheckCircle2 className="w-4 h-4 text-success" />}
-                        {!isInterview && !isRejected && <Clock className="w-4 h-4 text-warning" />}
-                        {isRejected && <XCircle className="w-4 h-4 text-text-muted" />}
-                        <span className={isInterview ? 'text-success font-bold' : 'text-text-secondary'}>
-                          {appStatus}
+                  const isInterview = typeof appStatus === 'string' && (appStatus.toLowerCase().includes('interview') || appStatus.toLowerCase().includes('offer'))
+                  const isRejected = typeof appStatus === 'string' && appStatus.toLowerCase().includes('reject')
+
+                  return (
+                    <tr key={app.id || idx} className="border-b border-border/50 hover:bg-surface/30 transition-colors">
+                      <td className="py-4 font-bold">{compName}</td>
+                      <td className="py-4 text-text-secondary">{roleName}</td>
+                      <td className="py-4">
+                        <span className={`px-2 py-1 text-xs border ${appType === 'Cold' ? 'border-accent text-accent' : 'border-border text-text-secondary'}`}>
+                          {appType}
                         </span>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="py-4 text-text-muted">{appDate}</td>
+                      <td className="py-4">
+                        <div className="flex items-center gap-2">
+                          {isInterview && <CheckCircle2 className="w-4 h-4 text-success" />}
+                          {!isInterview && !isRejected && <Clock className="w-4 h-4 text-warning" />}
+                          {isRejected && <XCircle className="w-4 h-4 text-text-muted" />}
+                          <span className={isInterview ? 'text-success font-bold' : 'text-text-secondary'}>
+                            {appStatus}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="p-8 border border-border bg-surface">
