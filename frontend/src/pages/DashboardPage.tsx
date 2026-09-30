@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Clock, XCircle, ArrowUpRight, Mail, Key } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, ArrowUpRight, Mail, Key, RotateCw } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
@@ -38,29 +38,45 @@ export default function DashboardPage() {
   const [loginError, setLoginError] = useState('')
   const [loginSubmitting, setLoginSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (!candidateId) {
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string>('Just now')
+
+  const refreshData = async (silent = false) => {
+    const id = candidateId || candidate?.id
+    if (!id) {
       setLoading(false)
       return
     }
 
-    fetch(`${API_BASE}/api/candidates/${candidateId}/dashboard/`)
-      .then(res => {
-        if (!res.ok) throw new Error('Not found')
-        return res.json()
-      })
-      .then(data => {
-        setCandidate(data)
+    if (!silent) setRefreshing(true)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/candidates/${id}/dashboard/`)
+      if (res.ok) {
+        const fresh = await res.json()
+        setCandidate(fresh)
         setIsLoggedIn(true)
-        sessionStorage.setItem('htf_candidate', JSON.stringify(data))
-      })
-      .catch(() => {
-        // Fallback to demo mode
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [candidateId])
+        sessionStorage.setItem('htf_candidate', JSON.stringify(fresh))
+        setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+      }
+    } catch {
+      // Offline fallback
+    } finally {
+      if (!silent) setRefreshing(false)
+      setLoading(false)
+    }
+  }
+
+  // Initial fetch and auto-sync poll every 8 seconds
+  useEffect(() => {
+    refreshData(false)
+
+    const interval = setInterval(() => {
+      refreshData(true)
+    }, 8000)
+
+    return () => clearInterval(interval)
+  }, [candidateId, candidate?.id])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -299,6 +315,26 @@ export default function DashboardPage() {
           All applications & founder correspondence route through this dedicated address.
         </div>
       </section>
+
+      {/* Live Synchronization Status Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 p-3 border border-border/80 bg-surface/40 font-mono text-xs text-text-muted">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+          <span className="text-text">Live Sync Active</span>
+          <span>·</span>
+          <span>Auto-checking updates every 8s</span>
+          <span>·</span>
+          <span>Last checked: {lastUpdated}</span>
+        </div>
+        <button
+          onClick={() => refreshData(false)}
+          disabled={refreshing}
+          className="px-3 py-1 border border-border hover:border-text transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 text-text"
+        >
+          <RotateCw className={`w-3 h-3 ${refreshing ? 'animate-spin text-accent' : ''}`} />
+          {refreshing ? 'Syncing...' : 'Sync Now'}
+        </button>
+      </div>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
         {[
