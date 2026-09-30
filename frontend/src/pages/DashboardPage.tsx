@@ -18,11 +18,19 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true)
   const [candidate, setCandidate] = useState<any>(() => {
-    const saved = sessionStorage.getItem('htf_candidate')
-    return saved ? JSON.parse(saved) : null
+    try {
+      const saved = sessionStorage.getItem('htf_candidate')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
   })
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return !!sessionStorage.getItem('htf_candidate') || !!searchParams.get('id') || searchParams.get('demo') === 'true'
+    try {
+      return !!sessionStorage.getItem('htf_candidate') || !!searchParams.get('id') || searchParams.get('demo') === 'true'
+    } catch {
+      return false
+    }
   })
 
   const [loginEmail, setLoginEmail] = useState('')
