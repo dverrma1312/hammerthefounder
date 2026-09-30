@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Check, X, ChevronDown, Upload, FileText, Loader2 } from 'lucide-react'
 
@@ -79,24 +80,40 @@ export default function LandingPage() {
       data.append('resume', file)
     }
 
+    const fullName = (form.elements.namedItem('full_name') as HTMLInputElement)?.value || ''
+    const targetRole = (form.elements.namedItem('target_role') as HTMLInputElement)?.value || ''
+    const phone = (form.elements.namedItem('whatsapp_number') as HTMLInputElement)?.value || ''
+    const userEmail = (form.elements.namedItem('email') as HTMLInputElement)?.value || ''
+    const location = (form.elements.namedItem('current_location') as HTMLInputElement)?.value || ''
+    const expectedCtc = (form.elements.namedItem('expected_ctc') as HTMLInputElement)?.value || ''
+
     try {
       const res = await fetch(`${API_BASE}/api/candidates/register/`, {
         method: 'POST',
         body: data,
       })
 
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(Object.values(err).flat().join(', ') || 'Registration failed.')
+      if (res.ok) {
+        const result = await res.json()
+        window.location.href = `${API_BASE}/api/candidates/whatsapp-redirect/${result.token}/`
+        return
       }
 
-      const result = await res.json()
-
-      // Secure redirect: backend validates token and issues 302 to WhatsApp
-      // The WhatsApp number NEVER touches this frontend
-      window.location.href = `${API_BASE}/api/candidates/whatsapp-redirect/${result.token}/`
+      const err = await res.json()
+      throw new Error(Object.values(err).flat().join(', ') || 'Registration failed.')
     } catch (err: any) {
-      setSubmitError(err.message || 'Something went wrong. Please try again.')
+      // If backend is offline or visitor is on static GitHub Pages, redirect directly to WhatsApp concierge!
+      const waMsg = encodeURIComponent(
+        `Hi Harshit! I want to join HammerTheFounder.\n` +
+        `• Name: ${fullName}\n` +
+        `• Target Role: ${targetRole}\n` +
+        `• WhatsApp: ${phone}\n` +
+        `• Email: ${userEmail}\n` +
+        `• Location: ${location}\n` +
+        `• Expected CTC: ${expectedCtc}\n` +
+        `• Selected Plan: ${selectedPlan}`
+      )
+      window.location.href = `https://wa.me/919311631709?text=${waMsg}`
     } finally {
       setSubmitting(false)
     }
@@ -111,14 +128,19 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-40 bg-bg/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-heading font-bold text-xl tracking-tight">HTF</div>
-          <div className="hidden md:flex items-center gap-8 font-mono text-sm">
-            <button onClick={() => scrollTo('how-it-works')} className="hover:text-text-secondary transition-colors">How It Works</button>
-            <button onClick={() => scrollTo('plans')} className="hover:text-text-secondary transition-colors">Plans</button>
-            <button onClick={() => scrollTo('trust')} className="hover:text-text-secondary transition-colors">Why Trust Us</button>
-            <button onClick={() => scrollTo('faq')} className="hover:text-text-secondary transition-colors">FAQ</button>
+          <div className="font-heading font-bold text-xl tracking-tight cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            HTF
           </div>
-          <button onClick={() => scrollTo('apply')} className="px-4 py-2 border border-text text-sm font-mono hover:bg-text hover:text-bg transition-colors">
+          <div className="hidden md:flex items-center gap-8 font-mono text-sm">
+            <button onClick={() => scrollTo('how-it-works')} className="hover:text-text-secondary transition-colors cursor-pointer">How It Works</button>
+            <button onClick={() => scrollTo('plans')} className="hover:text-text-secondary transition-colors cursor-pointer">Plans</button>
+            <button onClick={() => scrollTo('trust')} className="hover:text-text-secondary transition-colors cursor-pointer">Why Trust Us</button>
+            <button onClick={() => scrollTo('faq')} className="hover:text-text-secondary transition-colors cursor-pointer">FAQ</button>
+            <Link to="/dashboard" className="px-3 py-1 border border-accent/40 text-accent hover:border-accent transition-colors">
+              Student Portal →
+            </Link>
+          </div>
+          <button onClick={() => scrollTo('apply')} className="px-4 py-2 border border-text text-sm font-mono hover:bg-text hover:text-bg transition-colors cursor-pointer">
             Start Applying
           </button>
         </div>
@@ -168,7 +190,9 @@ export default function LandingPage() {
             <span>·</span>
             <span>1-on-1 WhatsApp Support</span>
             <span>·</span>
-            <span>Live Tracking Dashboard</span>
+            <Link to="/dashboard" className="text-text hover:text-accent underline underline-offset-4 transition-colors">
+              Live Tracking Dashboard ↗
+            </Link>
           </motion.div>
         </div>
       </section>

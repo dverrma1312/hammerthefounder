@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Clock, XCircle, ArrowUpRight, Mail, Key } from 'lucide-react'
 
@@ -62,6 +62,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-12 max-w-7xl mx-auto">
+      <Link to="/" className="inline-block font-mono text-xs text-text-muted hover:text-text mb-6 uppercase tracking-wider transition-colors">
+        ← Return to Landing Page
+      </Link>
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-border pb-8">
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-2">Live Candidate Monitor</div>
@@ -171,7 +174,10 @@ export default function DashboardPage() {
             <h3 className="font-heading font-bold text-xl mb-2">Need an update?</h3>
             <p className="text-text-secondary font-sans text-sm">Your strategist is available on WhatsApp.</p>
           </div>
-          <button className="px-6 py-3 bg-text text-bg hover:bg-text/90 font-mono text-sm uppercase tracking-wider flex items-center gap-2 transition-colors w-full md:w-auto justify-center">
+          <button 
+            onClick={() => window.open('https://wa.me/919311631709?text=Hi%20Harshit!%20Checking%20in%20from%20my%20HammerTheFounder%20student%20dashboard.', '_blank')}
+            className="px-6 py-3 bg-text text-bg hover:bg-text/90 font-mono text-sm uppercase tracking-wider flex items-center gap-2 transition-colors w-full md:w-auto justify-center cursor-pointer"
+          >
             Message Strategist <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
