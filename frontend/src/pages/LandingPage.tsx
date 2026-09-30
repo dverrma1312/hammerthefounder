@@ -102,6 +102,10 @@ export default function LandingPage() {
     }
   }
 
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
     <div className="min-h-screen">
       {/* Navbar */}
@@ -109,14 +113,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-heading font-bold text-xl tracking-tight">HTF</div>
           <div className="hidden md:flex items-center gap-8 font-mono text-sm">
-            <a href="#how-it-works" className="hover:text-text-secondary transition-colors">How It Works</a>
-            <a href="#plans" className="hover:text-text-secondary transition-colors">Plans</a>
-            <a href="#trust" className="hover:text-text-secondary transition-colors">Why Trust Us</a>
-            <a href="#faq" className="hover:text-text-secondary transition-colors">FAQ</a>
+            <button onClick={() => scrollTo('how-it-works')} className="hover:text-text-secondary transition-colors">How It Works</button>
+            <button onClick={() => scrollTo('plans')} className="hover:text-text-secondary transition-colors">Plans</button>
+            <button onClick={() => scrollTo('trust')} className="hover:text-text-secondary transition-colors">Why Trust Us</button>
+            <button onClick={() => scrollTo('faq')} className="hover:text-text-secondary transition-colors">FAQ</button>
           </div>
-          <a href="#apply" className="px-4 py-2 border border-text text-sm font-mono hover:bg-text hover:text-bg transition-colors">
+          <button onClick={() => scrollTo('apply')} className="px-4 py-2 border border-text text-sm font-mono hover:bg-text hover:text-bg transition-colors">
             Start Applying
-          </a>
+          </button>
         </div>
       </nav>
 
@@ -146,12 +150,12 @@ export default function LandingPage() {
             transition={{ delay: 0.6, duration: 0.8 }}
             className="flex flex-col sm:flex-row gap-6 mb-16"
           >
-            <a href="#apply" className="px-8 py-4 bg-accent text-bg hover:bg-accent-hover font-mono uppercase tracking-wider text-sm flex items-center justify-center gap-2 transition-colors">
+            <button onClick={() => scrollTo('apply')} className="px-8 py-4 bg-accent text-bg hover:bg-accent-hover font-mono uppercase tracking-wider text-sm flex items-center justify-center gap-2 transition-colors">
               Launch Your Campaign <ArrowRight className="w-4 h-4" />
-            </a>
-            <a href="#how-it-works" className="px-8 py-4 border border-border hover:border-text font-mono uppercase tracking-wider text-sm flex items-center justify-center transition-colors">
+            </button>
+            <button onClick={() => scrollTo('how-it-works')} className="px-8 py-4 border border-border hover:border-text font-mono uppercase tracking-wider text-sm flex items-center justify-center transition-colors">
               See How It Works
-            </a>
+            </button>
           </motion.div>
           
           <motion.div 
@@ -233,9 +237,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <a href="#apply" className={`w-full py-3 text-center font-mono text-sm uppercase tracking-wider transition-colors border ${plan.popular ? 'bg-accent text-bg border-accent hover:bg-accent-hover' : 'border-border hover:border-text'}`}>
+                <button onClick={() => scrollTo('apply')} className={`w-full py-3 text-center font-mono text-sm uppercase tracking-wider transition-colors border ${plan.popular ? 'bg-accent text-bg border-accent hover:bg-accent-hover' : 'border-border hover:border-text'}`}>
                   Select Plan
-                </a>
+                </button>
               </div>
             ))}
           </div>
@@ -245,9 +249,9 @@ export default function LandingPage() {
               <h3 className="text-xl font-heading font-bold mb-2">"I Can't Afford It Right Now" 🤝</h3>
               <p className="text-text-secondary font-sans text-sm">Lack of funds shouldn't kill your career. Let's talk — we'll work something out.</p>
             </div>
-            <a href="#apply" className="px-6 py-3 border border-border hover:border-text font-mono text-sm uppercase tracking-wider whitespace-nowrap transition-colors">
+            <button onClick={() => scrollTo('apply')} className="px-6 py-3 border border-border hover:border-text font-mono text-sm uppercase tracking-wider whitespace-nowrap transition-colors">
               Talk to Us
-            </a>
+            </button>
           </div>
         </div>
       </section>
