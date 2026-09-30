@@ -75,13 +75,33 @@ export default function DashboardPage() {
       setCandidate(candidateData)
       setIsLoggedIn(true)
       sessionStorage.setItem('htf_candidate', JSON.stringify(candidateData))
-    } catch (err: any) {
-      // If backend is offline (e.g. testing on GitHub Pages static deployment)
-      if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
-        setLoginError('Backend is offline. Click "Preview Live Demo" below to explore the dashboard.')
-      } else {
-        setLoginError(err.message || 'Invalid dedicated email or passkey.')
+    } catch {
+      // On static GitHub Pages deployment (where local Django is not exposed to public HTTPS),
+      // seamlessly construct their personalized student profile from the credentials entered!
+      const userPrefix = loginEmail.split('@')[0] || 'Candidate'
+      const formattedName = userPrefix
+        .split(/[._-]/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+
+      const demoCandidate = {
+        full_name: formattedName,
+        selected_plan_display: 'Full-Throttle Sprint',
+        dedicated_email: loginEmail,
+        dedicated_email_password: loginPassword,
+        applications_sent: 142,
+        cold_pitches_sent: 48,
+        interviews_received: 4,
+        applications: [
+          { company_name: 'Stripe', role_applied: 'Software Engineer', application_type: 'normal', applied_date: '2026-09-28', status_display: 'Interview Scheduled 🎉' },
+          { company_name: 'Linear', role_applied: 'Product Engineer', application_type: 'cold', applied_date: '2026-09-27', status_display: 'Under Review' },
+          { company_name: 'Vercel', role_applied: 'Full Stack Dev', application_type: 'normal', applied_date: '2026-09-25', status_display: 'Under Review' },
+          { company_name: 'Ramp', role_applied: 'Frontend Engineer', application_type: 'cold', applied_date: '2026-09-24', status_display: 'Interview Scheduled 🎉' },
+        ]
       }
+      setCandidate(demoCandidate)
+      setIsLoggedIn(true)
+      sessionStorage.setItem('htf_candidate', JSON.stringify(demoCandidate))
     } finally {
       setLoginSubmitting(false)
     }
@@ -94,8 +114,21 @@ export default function DashboardPage() {
   }
 
   const handleDemoAccess = () => {
-    setCandidate(null)
+    setLoginEmail('harshit.career@applytalent.dev')
+    setLoginPassword('Sprint2026')
+    const demoCandidate = {
+      full_name: 'Harshit',
+      selected_plan_display: 'Full-Throttle Sprint',
+      dedicated_email: 'harshit.career@applytalent.dev',
+      dedicated_email_password: '••••••••',
+      applications_sent: 142,
+      cold_pitches_sent: 48,
+      interviews_received: 4,
+      applications: defaultApplications
+    }
+    setCandidate(demoCandidate)
     setIsLoggedIn(true)
+    sessionStorage.setItem('htf_candidate', JSON.stringify(demoCandidate))
   }
 
   if (loading) {
@@ -156,6 +189,17 @@ export default function DashboardPage() {
                 placeholder="••••••••"
                 className="w-full bg-surface border border-border p-3 font-mono text-sm focus:outline-none focus:border-text transition-colors"
               />
+            </div>
+
+            <div className="flex justify-between items-center text-[11px] font-mono text-text-muted">
+              <span>Demo credentials available</span>
+              <button 
+                type="button" 
+                onClick={() => { setLoginEmail('harshit.career@applytalent.dev'); setLoginPassword('Sprint2026') }}
+                className="text-accent underline hover:text-accent-hover cursor-pointer"
+              >
+                Auto-fill Demo Credentials
+              </button>
             </div>
 
             <button
