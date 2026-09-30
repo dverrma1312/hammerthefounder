@@ -17,7 +17,18 @@ export default function DashboardPage() {
   const candidateId = searchParams.get('id')
 
   const [loading, setLoading] = useState(true)
-  const [candidate, setCandidate] = useState<any>(null)
+  const [candidate, setCandidate] = useState<any>(() => {
+    const saved = sessionStorage.getItem('htf_candidate')
+    return saved ? JSON.parse(saved) : null
+  })
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return !!sessionStorage.getItem('htf_candidate') || !!searchParams.get('id') || searchParams.get('demo') === 'true'
+  })
+
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [loginSubmitting, setLoginSubmitting] = useState(false)
 
   useEffect(() => {
     if (!candidateId) {
@@ -32,6 +43,8 @@ export default function DashboardPage() {
       })
       .then(data => {
         setCandidate(data)
+        setIsLoggedIn(true)
+        sessionStorage.setItem('htf_candidate', JSON.stringify(data))
       })
       .catch(() => {
         // Fallback to demo mode
@@ -41,10 +54,133 @@ export default function DashboardPage() {
       })
   }, [candidateId])
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginSubmitting(true)
+    setLoginError('')
+
+    try {
+      const res = await fetch(`${API_BASE}/api/candidates/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Invalid email or passkey.')
+      }
+
+      const candidateData = await res.json()
+      setCandidate(candidateData)
+      setIsLoggedIn(true)
+      sessionStorage.setItem('htf_candidate', JSON.stringify(candidateData))
+    } catch (err: any) {
+      // If backend is offline (e.g. testing on GitHub Pages static deployment)
+      if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+        setLoginError('Backend is offline. Click "Preview Live Demo" below to explore the dashboard.')
+      } else {
+        setLoginError(err.message || 'Invalid dedicated email or passkey.')
+      }
+    } finally {
+      setLoginSubmitting(false)
+    }
+  }
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('htf_candidate')
+    setCandidate(null)
+    setIsLoggedIn(false)
+  }
+
+  const handleDemoAccess = () => {
+    setCandidate(null)
+    setIsLoggedIn(true)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-mono text-sm text-text-secondary">
         LOADING_SYSTEM_METRICS...
+      </div>
+    )
+  }
+
+  // If not logged in, render the brutalist authentication screen
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen p-6 md:p-12 flex flex-col justify-between max-w-xl mx-auto">
+        <Link to="/" className="inline-block font-mono text-xs text-text-muted hover:text-text uppercase tracking-wider transition-colors">
+          ← Return to Landing Page
+        </Link>
+
+        <div className="my-auto py-12">
+          <div className="mb-8 border-b border-border pb-6">
+            <div className="font-mono text-xs text-accent uppercase tracking-widest mb-2">Restricted Access</div>
+            <h1 className="text-3xl md:text-4xl font-heading font-bold mb-2">Student Portal Login</h1>
+            <p className="text-text-secondary font-mono text-xs leading-relaxed">
+              Enter the dedicated email and passkey issued to you by your strategist on WhatsApp.
+            </p>
+          </div>
+
+          {loginError && (
+            <div className="p-4 mb-6 border border-accent bg-accent/10 text-accent font-mono text-xs">
+              {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="font-mono text-xs uppercase text-text-muted flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5" /> Dedicated Email
+              </label>
+              <input
+                required
+                type="email"
+                value={loginEmail}
+                onChange={e => setLoginEmail(e.target.value)}
+                placeholder="yourname.career@applytalent.dev"
+                className="w-full bg-surface border border-border p-3 font-mono text-sm focus:outline-none focus:border-text transition-colors"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-mono text-xs uppercase text-text-muted flex items-center gap-2">
+                <Key className="w-3.5 h-3.5" /> Passkey / PIN
+              </label>
+              <input
+                required
+                type="password"
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-surface border border-border p-3 font-mono text-sm focus:outline-none focus:border-text transition-colors"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loginSubmitting}
+              className="w-full py-4 bg-accent text-bg font-mono text-sm uppercase tracking-wider hover:bg-accent-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {loginSubmitting ? 'Authenticating...' : 'Unlock Live Dashboard →'}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono">
+            <span className="text-text-muted">Don't have your credentials yet?</span>
+            <button
+              onClick={handleDemoAccess}
+              className="text-accent underline underline-offset-4 hover:text-accent-hover cursor-pointer"
+            >
+              Preview Live Demo Mode ↗
+            </button>
+          </div>
+        </div>
+
+        <p className="font-mono text-[10px] text-text-muted text-center">
+          HammerTheFounder · Protected Candidate Interface · 2026
+        </p>
       </div>
     )
   }
@@ -62,9 +198,17 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-12 max-w-7xl mx-auto">
-      <Link to="/" className="inline-block font-mono text-xs text-text-muted hover:text-text mb-6 uppercase tracking-wider transition-colors">
-        ← Return to Landing Page
-      </Link>
+      <div className="flex justify-between items-center mb-6">
+        <Link to="/" className="inline-block font-mono text-xs text-text-muted hover:text-text uppercase tracking-wider transition-colors">
+          ← Return to Landing Page
+        </Link>
+        <button
+          onClick={handleLogout}
+          className="font-mono text-xs text-text-muted hover:text-accent uppercase tracking-wider transition-colors cursor-pointer"
+        >
+          Sign Out [⎋]
+        </button>
+      </div>
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-border pb-8">
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-2">Live Candidate Monitor</div>

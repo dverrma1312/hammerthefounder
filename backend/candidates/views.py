@@ -73,3 +73,23 @@ def candidate_dashboard(request, pk):
         
     serializer = CandidateSerializer(candidate)
     return Response(serializer.data)
+
+@api_view(['POST'])
+def candidate_login(request):
+    from django.db.models import Q
+    email = request.data.get('email', '').strip()
+    password = request.data.get('password', '').strip()
+    
+    if not email or not password:
+        return Response({'error': 'Dedicated email and passkey are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    candidate = Candidate.objects.filter(
+        Q(dedicated_email__iexact=email) | Q(email__iexact=email),
+        dedicated_email_password=password
+    ).first()
+    
+    if not candidate:
+        return Response({'error': 'Invalid credentials. Please verify your dedicated email and passkey.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+    serializer = CandidateSerializer(candidate)
+    return Response(serializer.data)
